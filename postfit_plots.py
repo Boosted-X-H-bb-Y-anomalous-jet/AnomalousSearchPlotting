@@ -29,11 +29,12 @@ def plot_limits(path_template,MX_values,output_name,prefit_xsec_in_fb=1.,observe
         data = root2array(path, treename='limit')
 
         limits["expected"].append(data['limit'][2]*prefit_xsec_in_fb)
-        #limits["observed"].append(data['limit'][5]*prefit_xsec_in_fb) #Don't have observed yet
         limits["minus_2sigma"].append(data['limit'][0]*prefit_xsec_in_fb)
         limits["minus_1sigma"].append(data['limit'][1]*prefit_xsec_in_fb)
         limits["plus_1sigma"].append(data['limit'][3]*prefit_xsec_in_fb)
         limits["plus_2sigma"].append(data['limit'][4]*prefit_xsec_in_fb)
+        if observed:
+            limits["observed"].append(data['limit'][5]*prefit_xsec_in_fb) #Don't have observed yet
 
     for key in limits:
         limits[key] = np.array(limits[key])
@@ -49,7 +50,8 @@ def plot_limits(path_template,MX_values,output_name,prefit_xsec_in_fb=1.,observe
     plt.fill_between(MX_values, limits["minus_2sigma"], limits["plus_2sigma"], color='darkorange', label='Expected ±2$\sigma$')
     plt.fill_between(MX_values, limits["minus_1sigma"], limits["plus_1sigma"], color='forestgreen', label='Expected ±1$\sigma$')
     plt.plot(MX_values, limits["expected"], color='black', linestyle='--', label='Expected')
-    #plt.plot(MX_values, limits["observed"], color='red', marker='o', linestyle='-', label='Observed')
+    if observed:
+        plt.plot(MX_values, limits["observed"], color='red', marker='o', linestyle='-', label='Observed')
 
     plt.xlabel("$M_{X} [GeV]$")
     plt.ylabel(r'$\sigma(pp \rightarrow X \rightarrow H(bb)Y(WW(4q))})\,[fb]$',horizontalalignment='right', y=1.0)
@@ -72,5 +74,5 @@ def plot_limits(path_template,MX_values,output_name,prefit_xsec_in_fb=1.,observe
 
 MX_values = [1200, 1400, 1600, 2000, 2500, 3000]
 path_template = '/uscms_data/d3/roguljic/el8_anomalous/fitting/AnomalousSearchFits/SR_run2/MX{}_MY90-1_area/higgsCombineTest.AsymptoticLimits.mH120.root'
-xsec = 5.0
+xsec = 5.0#fb
 plot_limits(path_template,MX_values,"bbWW_limits_MY90",observed=False,prefit_xsec_in_fb=xsec)
