@@ -45,7 +45,6 @@ def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig
             nonQCDcolors.append(colorsSig[i])
             nonQCDlabels.append(labelsSig[i])
             outlinecolors.append('dimgray')
-            print(labelsSig[i])
     
 
 
@@ -77,6 +76,7 @@ def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig
     plt.style.use([hep.style.CMS])
     f, ax = plt.subplots()
 
+   
     hep.histplot(QCDhistos,edgesSig[0],stack=False,ax=ax,label=['QCD'],linewidth=3,histtype="fill",color=['burlywood'])
     hep.histplot(QCDhistos,edgesSig[0],stack=False,ax=ax,linewidth=3,histtype="step",color=['dimgray'])
     hep.histplot(nonQCDhistos,edgesSig[0],stack=False,ax=ax,label=nonQCDlabels,linewidth=3,histtype="fill",color=nonQCDcolors)
@@ -138,7 +138,7 @@ def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig
 
     plt.clf()
 
-    return
+    return QCDhistos
 
 def make_histograms_CR(mcpaths,datapath,year):
     
@@ -241,10 +241,25 @@ def make_histograms_CR(mcpaths,datapath,year):
             colorsDataFail.append(color)
             edgesDataFail.append(edges[0])
 
-    plot(histosDataPass,edgesDataPass,colorsDataPass,labelsDataPass,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True)
-    plot(histosDataFail,edgesDataFail,colorsDataFail,labelsDataFail,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False)
+    QCDPass=plot(histosDataPass,edgesDataPass,colorsDataPass,labelsDataPass,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True)
+    QCDFail=plot(histosDataFail,edgesDataFail,colorsDataFail,labelsDataFail,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False)
 
-    return
+    histos_pass_to_return=[QCDPass]
+    labels_to_return=['QCD']
+    colors_to_return=['burlywood']
+    for i in range(len(histosSigPass)):
+        if 'QCD' not in labelsSigPass[i]:
+            histos_pass_to_return.append(histosSigPass[i])
+            labels_to_return.append(labelsSigPass[i])
+            colors_to_return.append(colorsSigPass[i])
+    
+    histos_fail_to_return=[QCDFail]
+    for i in range(len(histosSigFail)):
+        if 'QCD' not in labelsSigFail[i]:
+            histos_fail_to_return.append(histosSigFail[i])
+    
+
+    return [histos_pass_to_return,histos_fail_to_return,edgesSigPass,colors_to_return,labels_to_return]
 
 def make_histograms_SR(mcpaths,datapath,year):
     
@@ -307,14 +322,29 @@ def make_histograms_SR(mcpaths,datapath,year):
 
     
 
-    plot(None,None,None,None,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True)
-    plot(None,None,None,None,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False)
-
-    return
+    QCDPass=plot(None,None,None,None,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True)
+    QCDFail=plot(None,None,None,None,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False)
 
 
-def plotrun2(path):
-    data=r.TFile.Open(path)
+    histos_pass_to_return=[QCDPass]
+    labels_to_return=['QCD']
+    colors_to_return=['burlywood']
+    for i in range(len(histosSigPass)):
+        if 'QCD' not in labelsSigPass[i]:
+            histos_pass_to_return.append(histosSigPass[i])
+            labels_to_return.append(labelsSigPass[i])
+            colors_to_return.append(colorsSigPass[i])
+    
+    histos_fail_to_return=[QCDFail]
+    for i in range(len(histosSigFail)):
+        if 'QCD' not in labelsSigFail[i]:
+            histos_fail_to_return.append(histosSigFail[i])
+
+
+    return [histos_pass_to_return,histos_fail_to_return,edgesSigPass,colors_to_return,labels_to_return]
+
+def plotrun2(datapath,histos_sig,edges_sig,colors_sig,labels_sig,pf_str,crsr_str):
+    data=r.TFile.Open(datapath)
     process='run2'
     datakeys=data.GetListOfKeys()
 
@@ -333,21 +363,23 @@ def plotrun2(path):
             color='k'
         elif ('CR'in keyname) and ('Fail' in keyname):
             label='CRFail'
-            color='r'
+            color='k'
         elif ('SR'in keyname) and ('Pass' in keyname):
             label='SRPass'
-            color='g'
+            color='k'
         elif ('SR'in keyname) and ('Fail' in keyname):
             label='SRFail'
-            color='b'
+            color='k'
         else:
             print('pf_flag error')
+        if (pf_str not in label) or (crsr_str not in label):
+            continue
         print('Creating histogram for run 2 ',label)
         h=data.Get(keyname)
         projection = h.ProjectionX("proj_name")
         hist, edges = hist2array(projection,return_edges=True)
         histosData.append(hist)
-        labelsData.append(label)
+        labelsData.append('Run 2 Data')
         colorsData.append(color)
         edgesData.append(edges[0])
         newerrors=[]
@@ -359,10 +391,24 @@ def plotrun2(path):
             newCenters.append((edgesData[0][i]+edgesData[0][i+1])/2)
         errorsCenters.append(newCenters)
     
+    histosSig  = []
+    #edgesSig   = []
+    labelsSig  = labels_sig
+    colorsSig  = colors_sig
+    for i in range(len(histos_sig[0])):
+        newhisto=np.zeros(len(histos_sig[0][i]))
+        for j in range(len(histos_sig)):
+            newhisto+=histos_sig[j][i]
+            #print(labelsSig[j][i])
+        histosSig.append(newhisto)
+        #edgesSig.append(edges_sig[0][0])
+
     
     plt.style.use([hep.style.CMS])
     f, ax = plt.subplots()
     
+    
+    hep.histplot(histosSig,edges_sig[0],stack=False,ax=ax,label=labelsSig[0],linewidth=3,histtype="fill",color=colorsSig[0])
     for i in range(len(histosData)):
         ax.errorbar(errorsCenters[i],histosData[i],yerr=errors[i],fmt='o', color=colorsData[i])
     hep.histplot(histosData,edgesData[0],stack=False,ax=ax,label=labelsData,linewidth=3,histtype="errorbar",color=colorsData)
@@ -378,7 +424,9 @@ def plotrun2(path):
     plt.xlabel(xTitle, horizontalalignment='right', x=1.0)
     plt.ylabel(yTitle,horizontalalignment='right', y=1.0)
     
-    regionText = "Run 2 Data"
+
+
+    regionText = "Run 2 Data " +crsr_str+' '+pf_str
     plt.ylim(10., 10**6)
     plt.xlim(1000, 3000)
 
@@ -390,7 +438,7 @@ def plotrun2(path):
     plt.legend(loc='upper right',ncol=2)#loc="best",ncol=2)#loc = 'best'    
     plt.tight_layout()
     
-    outFile='run2_mjj'
+    outFile=crsr_str+pf_str+'_run2_mjj'
     
     print("Saving {0}".format(outFile))
 
@@ -463,6 +511,17 @@ if __name__ == '__main__':
     processes=['QCD','TTToHadronic','TTToSemiLeptonic']#['MXMY','QCD','TTToHadronic','TTToSemiLeptonic']
     #years=['2016']
 
+    CR_histos_pass=[]
+    CR_histos_fail=[]
+    CR_edges=[]
+    CR_colors=[]
+    CR_labels=[]
+    SR_histos_pass=[]
+    SR_histos_fail=[]
+    SR_edges=[]
+    SR_colors=[]
+    SR_labels=[]
+
     for year in years:
         filepaths=[]
         for process in processes:
@@ -470,9 +529,23 @@ if __name__ == '__main__':
             for item in mcpaths:
                 filepaths.append(item)
         data=getfilepaths('x',year,True)
-        make_histograms_CR(filepaths,data,year)
-        make_histograms_SR(filepaths,data,year)
+        CR=make_histograms_CR(filepaths,data,year) #[histos_pass_to_return,histos_fail_to_return,edgesSigPass,colorsSigPass,labelsSigPass]
+        CR_histos_pass.append(CR[0]) 
+        CR_histos_fail.append(CR[1]) 
+        CR_edges.append(CR[2])
+        CR_colors.append(CR[3])
+        CR_labels.append(CR[4])
+        SR=make_histograms_SR(filepaths,data,year) #[histos_pass_to_return,histos_fail_to_return,edgesSigPass,colorsSigPass,labelsSigPass]
+        SR_histos_pass.append(SR[0])
+        SR_histos_fail.append(SR[1]) 
+        SR_edges.append(SR[2])
+        SR_colors.append(SR[3])
+        SR_labels.append(SR[4])
+
 
     newprocess='run2'
     path=getfilepaths(newprocess,None,False)
-    plotrun2(path)
+    plotrun2(path,CR_histos_pass,CR_edges[0],CR_colors,CR_labels,'Pass','CR')
+    plotrun2(path,CR_histos_fail,CR_edges[0],CR_colors,CR_labels,'Fail','CR')
+    plotrun2(path,SR_histos_pass,SR_edges[0],SR_colors,SR_labels,'Pass','SR')
+    plotrun2(path,SR_histos_fail,SR_edges[0],SR_colors,SR_labels,'Fail','SR')
