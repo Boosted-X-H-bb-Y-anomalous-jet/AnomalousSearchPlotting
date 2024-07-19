@@ -114,7 +114,7 @@ def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig
             plt.ylim(10., 10**6)
             plt.xlim(1000, 3000)
 
-    plt.text(0.8, 0.8, regionText,horizontalalignment='center',verticalalignment='center',transform = ax.transAxes)
+    plt.text(0.7, 0.8, regionText,horizontalalignment='center',verticalalignment='center',transform = ax.transAxes)
     hep.cms.text("Simulation WiP",loc=0)
     #lumiText =  $XYZ fb^{-1} (13 TeV)$"    
     lumiText = f"{year} (13 TeV)"    
@@ -409,9 +409,10 @@ def plotrun2(datapath,histos_sig,edges_sig,colors_sig,labels_sig,pf_str,crsr_str
     
     
     hep.histplot(histosSig,edges_sig[0],stack=False,ax=ax,label=labelsSig[0],linewidth=3,histtype="fill",color=colorsSig[0])
-    for i in range(len(histosData)):
-        ax.errorbar(errorsCenters[i],histosData[i],yerr=errors[i],fmt='o', color=colorsData[i])
-    hep.histplot(histosData,edgesData[0],stack=False,ax=ax,label=labelsData,linewidth=3,histtype="errorbar",color=colorsData)
+    if 'SR' not in crsr_str:
+        for i in range(len(histosData)):
+            ax.errorbar(errorsCenters[i],histosData[i],yerr=errors[i],fmt='o', color=colorsData[i])
+        hep.histplot(histosData,edgesData[0],stack=False,ax=ax,label=labelsData,linewidth=3,histtype="errorbar",color=colorsData)
 
     if(log):
         ax.set_yscale("log")
@@ -426,11 +427,11 @@ def plotrun2(datapath,histos_sig,edges_sig,colors_sig,labels_sig,pf_str,crsr_str
     
 
 
-    regionText = "Run 2 Data " +crsr_str+' '+pf_str
+    regionText = "Run 2 " +crsr_str+' '+pf_str
     plt.ylim(10., 10**6)
     plt.xlim(1000, 3000)
 
-    plt.text(0.8, 0.8, regionText,horizontalalignment='center',verticalalignment='center',transform = ax.transAxes)
+    plt.text(0.8, 0.7, regionText,horizontalalignment='center',verticalalignment='center',transform = ax.transAxes)
     hep.cms.text("Simulation WiP",loc=0)
     #lumiText =  $XYZ fb^{-1} (13 TeV)$"    
     lumiText = f"Run2 (13 TeV)"    
