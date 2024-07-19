@@ -208,37 +208,38 @@ def xrdcp_merged_file(year,process):
     xrdcp_cmd = f"xrdcp root://cmseos.fnal.gov/{h5_dir}/merged.h5 ."
     subprocess.call(xrdcp_cmd,shell=True)
 
-
-"""year = "2018"
-process = "MX1600_MY90"
-xrdcp_merged_file(year,process)
-eff_nom,eff_rw,tot_unc_up,tot_unc_down = calc_SF("merged.h5","data/ratio_2018.root")
-sf_string = "..."
-current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-line_to_write = f"{sf_string} - {current_date}\n"
-
-with open("SFs.txt", "a") as file:
-    file.write(line_to_write)
-subprocess.call("rm merged.h5",shell=True)"""
-
 years=['2016','2016APV','2017','2018']
 processes=['MX1200_MY90','MX1400_MY90','MX1600_MY90','MX1800_MY90','MX2000_MY90','MX2200_MY90','MX2400_MY90','MX2500_MY90','MX2600_MY90','MX2800_MY90','MX3000_MY90','MX3500_MY90','MX4000_MY90']
+
+
+with open("SFs.txt", 'r') as file:
+    lst_already_done=file.readlines()
 
 returned_values=[]
 for year in years:
     for process in processes:
-        xrdcp_merged_file(year,process)
-        eff_nom,eff_rw,tot_unc_up,tot_unc_down,SF = calc_SF("merged.h5","data/ratio_2018.root")
-        sf_string = "..."
-        current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        entry=[year,process,eff_nom,eff_rw,tot_unc_up,tot_unc_down,SF]
-        line_to_write = f"%s %s: Original %.2f, Calibrated %.2f +%.2f/-%.2f, SF, %.2f - {current_date}\n"  % (entry[0],entry[1],entry[2], entry[3], entry[4], entry[5],entry[6])  #"{sf_string} - {current_date}\n"
-        #returned_values.append([year,process,eff_nom,eff_rw,tot_unc_up,tot_unc_down,SF])
 
-        with open("SFs.txt", "a") as file:
-            file.write(line_to_write)
-        subprocess.call("rm merged.h5",shell=True)
+        completed=False
+        for line in lst_already_done:
+            if (year in line) and (process in line):  
+                completed=True
+                print(year,process,' already calculated')
+                continue    
 
-"""with open("SFs.txt", "a") as file:
-    for entry in returned_values:
-        print(entry[0]+' '+entry[1]+": "+"Original %.2f, Calibrated %.2f +%.2f/-%.2f, SF, %.2f \n"  % (entry[2], entry[3], entry[4], entry[5],entry[6]))"""
+        if not completed:
+            xrdcp_merged_file(year,process)
+            
+            if year=='2016APV':
+                ratio_str='data/ratio_2016.root'
+            else:
+                ratio_str='data/ratio_'+year+'.root'
+
+            eff_nom,eff_rw,tot_unc_up,tot_unc_down,SF = calc_SF("merged.h5",ratio_str)
+            sf_string = "..."
+            current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            entry=[year,process,eff_nom,eff_rw,tot_unc_up,tot_unc_down,SF]
+            line_to_write = f"%s %s: Original %.2f, Calibrated %.2f +%.2f/-%.2f, SF, %.2f - {current_date}\n"  % (entry[0],entry[1],entry[2], entry[3], entry[4], entry[5],entry[6])
+
+            with open("SFs.txt", "a") as file:
+                file.write(line_to_write)
+            subprocess.call("rm merged.h5",shell=True)
