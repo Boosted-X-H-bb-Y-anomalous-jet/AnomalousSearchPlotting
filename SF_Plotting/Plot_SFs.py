@@ -16,6 +16,7 @@ def plot(years,Mxs,SFs,Uncs_up,Uncs_down,colors):
     
         yTitle='Scale Factor'
         xTitle='MX'
+        plt.ylim(ymin=0.5, ymax=1.5)
 
         plt.xlabel(xTitle, horizontalalignment='right', x=1.0)
         plt.ylabel(yTitle,horizontalalignment='right', y=1.0)
