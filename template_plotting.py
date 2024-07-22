@@ -25,7 +25,7 @@ base_path='/uscms_data/d3/roguljic/el8_anomalous/el9_fitting/templates_v2/'
 
 log=True
 
-def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig,labelsSig,Pass):
+def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig,labelsSig,Pass,CRSR):
     QCD=[]
     #QCDedges=[]
     nonQCDhistos=[]
@@ -95,25 +95,16 @@ def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig
     ax.set_xlabel(xTitle)
     plt.xlabel(xTitle, horizontalalignment='right', x=1.0)
     plt.ylabel(yTitle,horizontalalignment='right', y=1.0)
-    if histosData!=None:
-        if Pass:
-            regionText = "CR Pass"
-            plt.ylim(1., 10**3)
-            plt.xlim(1000, 3000)
-        else:
-            regionText = "CR Fail"
-            plt.ylim(10., 10**6)
-            plt.xlim(1000, 3000)
+    
+    if Pass:
+        regionText = CRSR + " Pass"
+        plt.ylim(1., 10**3)
+        plt.xlim(1000, 3000)
     else:
-        if Pass:
-            regionText = "SR Pass"
-            plt.ylim(1., 10**3)
-            plt.xlim(1000, 3000)
-        else:
-            regionText = "SR Fail"
-            plt.ylim(10., 10**6)
-            plt.xlim(1000, 3000)
-
+        regionText = CRSR + " Fail"
+        plt.ylim(10., 10**6)
+        plt.xlim(1000, 3000)
+    
     plt.text(0.7, 0.8, regionText,horizontalalignment='center',verticalalignment='center',transform = ax.transAxes)
     hep.cms.text("Simulation WiP",loc=0)
     #lumiText =  $XYZ fb^{-1} (13 TeV)$"    
@@ -121,16 +112,11 @@ def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig
     hep.cms.lumitext(lumiText)
     plt.legend(loc='upper right',ncol=2)#loc="best",ncol=2)#loc = 'best'    
     plt.tight_layout()
-    if histosData!=None:
-        if Pass:
-            outFile='CRPass_'+year+'_mjj'
-        else:
-            outFile='CRFail_'+year+'_mjj'
+    if Pass:
+        outFile=CRSR+'Pass_'+year+'_mjj'
     else:
-        if Pass:
-            outFile='SRPass_'+year+'_mjj'
-        else:
-            outFile='SRFail_'+year+'_mjj'
+        outFile=CRSR+'Fail_'+year+'_mjj'
+
     print("Saving {0}".format(outFile))
 
     plt.savefig(outFile)
@@ -241,8 +227,8 @@ def make_histograms_CR(mcpaths,datapath,year):
             colorsDataFail.append(color)
             edgesDataFail.append(edges[0])
 
-    QCDPass=plot(histosDataPass,edgesDataPass,colorsDataPass,labelsDataPass,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True)
-    QCDFail=plot(histosDataFail,edgesDataFail,colorsDataFail,labelsDataFail,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False)
+    QCDPass=plot(histosDataPass,edgesDataPass,colorsDataPass,labelsDataPass,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True,'CR')
+    QCDFail=plot(histosDataFail,edgesDataFail,colorsDataFail,labelsDataFail,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False,'CR')
 
     histos_pass_to_return=[QCDPass]
     labels_to_return=['QCD']
@@ -268,6 +254,10 @@ def make_histograms_SR(mcpaths,datapath,year):
     labelsSigPass  = []
     colorsSigPass  = []
 
+    histosDataFail = []
+    edgesDataFail  = []
+    colorsDataFail = []
+    labelsDataFail = []
     histosSigFail  = []
     edgesSigFail   = []
     labelsSigFail  = []
@@ -319,11 +309,37 @@ def make_histograms_SR(mcpaths,datapath,year):
                 colorsSigFail.append(color)
                 edgesSigFail.append(edges[0])
 
+    data=r.TFile.Open(datapath[0][0])
+    process=datapath[0][1]
+    datakeys=data.GetListOfKeys()
+
+    for key in datakeys:
+
+        color='k'
+
+        keyname=key.GetName()
+        if 'CR' in keyname:
+            continue
+        if 'Pass' in keyname:
+            continue
+        elif 'Fail' in keyname:
+            pf_flag=False
+        else:
+            print('pf_flag error')
+        print('Creating histogram for data ',keyname)
+        h=data.Get(keyname)
+        projection = h.ProjectionX("proj_name")
+        hist, edges = hist2array(projection,return_edges=True)
+        if not pf_flag:
+            histosDataFail.append(hist)
+            labelsDataFail.append(process)
+            colorsDataFail.append(color)
+            edgesDataFail.append(edges[0])
 
     
 
-    QCDPass=plot(None,None,None,None,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True)
-    QCDFail=plot(None,None,None,None,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False)
+    QCDPass=plot(None,None,None,None,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True,'SR')
+    QCDFail=plot(histosDataFail,edgesDataFail,colorsDataFail,labelsDataFail,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False,'SR') 
 
 
     histos_pass_to_return=[QCDPass]
@@ -409,7 +425,7 @@ def plotrun2(datapath,histos_sig,edges_sig,colors_sig,labels_sig,pf_str,crsr_str
     
     
     hep.histplot(histosSig,edges_sig[0],stack=False,ax=ax,label=labelsSig[0],linewidth=3,histtype="fill",color=colorsSig[0])
-    if 'SR' not in crsr_str:
+    if ('SR' not in crsr_str) or ('Pass' not in pf_str):
         for i in range(len(histosData)):
             ax.errorbar(errorsCenters[i],histosData[i],yerr=errors[i],fmt='o', color=colorsData[i])
         hep.histplot(histosData,edgesData[0],stack=False,ax=ax,label=labelsData,linewidth=3,histtype="errorbar",color=colorsData)
