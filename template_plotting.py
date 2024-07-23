@@ -133,9 +133,8 @@ def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig
             outFile='SRFail_'+year+'_mjj'
     print("Saving {0}".format(outFile))
 
-    plt.savefig(outFile)
-    plt.savefig(outFile.replace(".png",".pdf"))
-
+    plt.savefig("plots/"+outFile)
+    plt.savefig("plots/"+outFile+".pdf")
     plt.clf()
 
     return QCDhistos
@@ -439,12 +438,12 @@ def plotrun2(datapath,histos_sig,edges_sig,colors_sig,labels_sig,pf_str,crsr_str
     plt.legend(loc='upper right',ncol=2)#loc="best",ncol=2)#loc = 'best'    
     plt.tight_layout()
     
-    outFile=crsr_str+pf_str+'_run2_mjj'
+    outFile="plots/"+crsr_str+pf_str+'_run2_mjj'
     
     print("Saving {0}".format(outFile))
 
     plt.savefig(outFile)
-    plt.savefig(outFile.replace(".png",".pdf"))
+    plt.savefig(outFile+".pdf")
 
     plt.clf()
 
