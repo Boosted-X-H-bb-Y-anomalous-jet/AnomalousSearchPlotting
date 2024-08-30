@@ -38,12 +38,12 @@ def Plot(Limits):
 
     plt.pcolormesh(x_edges, y_edges, Limits, shading='auto', cmap='viridis')
 
-    plt.colorbar(label='Efficiency')
+    plt.colorbar() #label='Efficiency')
 
     plt.ylabel(r'$M_{Y}$', fontsize=24)
     plt.xlabel(r'$M_{X}$', fontsize=24)
 
-    plt.title("Limit vs Mass")
+    plt.title("Mass vs Expected Limits")
     plt.savefig('Limit_vs_Mass.png')
 
 def MakePlots():
