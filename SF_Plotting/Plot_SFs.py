@@ -22,16 +22,13 @@ def plot(years,Mxs,SFs,Uncs_up,Uncs_down,colors):
         plt.ylabel(yTitle,horizontalalignment='right', y=1.0)
         plt.legend(loc='upper right',ncol=2)
 
-        plt.savefig('SFs'+years[i]+'.png')
+        plt.savefig('vae_SFs'+years[i]+'.pdf')
 
     return
 
 if __name__ == '__main__':
     with open("SFs.txt", 'r') as file:
         lines=file.readlines()
-
-    for i in range(len(lines)):
-        lines[i]=lines[i].split(', ')
     
     years=['2016','2016APV','2017','2018']
     colors=['k','g','b','r']
@@ -45,29 +42,30 @@ if __name__ == '__main__':
     Uncs_up=[[],[],[],[]]
     Uncs_down=[[],[],[],[]]
     for line in lines:
-        if '2016APV' in line[0]:
-            SFs2016APV.append(float(line[3][0:4]))
-            MXs.append(float(line[0][10:14]))
-            unc_up=float(line[1][17:21])/float(line[0][-4:])
-            unc_down=float(line[1][23:])/float(line[0][-4:])
+        content = line.split(",")
+        if '2016APV' in content[0]:
+            SFs2016APV.append(float(content[2]))
+            MXs.append(float(content[1][2:6]))
+            unc_up=float(content[3])
+            unc_down=float(content[4])
             Uncs_up[1].append(unc_up)
             Uncs_down[1].append(unc_down)
-        elif '2016' in line[0]:
-            SFs2016.append(float(line[3][0:4]))
-            unc_up=float(line[1][17:21])/float(line[0][-4:])
-            unc_down=float(line[1][23:])/float(line[0][-4:])
+        elif '2016' in content[0]:
+            SFs2016.append(float(content[2]))
+            unc_up=float(content[3])
+            unc_down=float(content[4])
             Uncs_up[0].append(unc_up)
             Uncs_down[0].append(unc_down)
-        elif '2017' in line[0]:
-            SFs2017.append(float(line[3][0:4]))
-            unc_up=float(line[1][17:21])/float(line[0][-4:])
-            unc_down=float(line[1][23:])/float(line[0][-4:])
+        elif '2017' in content[0]:
+            SFs2017.append(float(content[2]))
+            unc_up=float(content[3])
+            unc_down=float(content[4])
             Uncs_up[2].append(unc_up)
             Uncs_down[2].append(unc_down)
-        elif '2018' in line[0]:
-            SFs2018.append(float(line[3][0:4]))
-            unc_up=float(line[1][17:21])/float(line[0][-4:])
-            unc_down=float(line[1][23:])/float(line[0][-4:])
+        elif '2018' in content[0]:
+            SFs2018.append(float(content[2]))
+            unc_up=float(content[3])
+            unc_down=float(content[4])
             Uncs_up[3].append(unc_up)
             Uncs_down[3].append(unc_down)
     
