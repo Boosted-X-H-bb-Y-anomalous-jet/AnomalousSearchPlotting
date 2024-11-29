@@ -80,7 +80,7 @@ def get_hists(input_file,region,processes):
         histos_region_dict[process]=h2
     return histos_region_dict
 
-def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outputFile,xRange=[],yRange=[],projectionText=""):
+def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outputFile,xRange=[],yRange=[],projectionText="",yRangeLog=[]):
     #Adapting this to new class
     edges = hData.bin_edges  
     centresData = hData.get_bin_centers()
@@ -165,7 +165,8 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
     plt.savefig(outputFile.replace("png","pdf"),bbox_inches="tight")
 
     axs[0].set_yscale("log")
-    axs[0].set_ylim(0.01,10**2)  # Adjust y-range for log scale here
+    if yRangeLog:
+        axs[0].set_ylim(yRangeLog)
     
     log_outputFile = outputFile.replace(".png", "_log.png")
     log_outputFile_pdf = log_outputFile.replace(".png", ".pdf")
@@ -176,36 +177,13 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
     plt.clf()
     plt.cla()
 
-
-def plot_projection(histos_dict,region,processes,labels_dict,colors_dict):
-    histos = histos_dict[region]
-    h_data = histos["data_obs"].ProjectionX("data_x")
-    h_data.SetBinErrorOption(1)
-    h_data = PyHist(h_data)
-    h_data.divide_by_bin_width()
-    h_mc = []
-    labels_mc=[]
-    colors_mc=[]
-    for process in processes:
-        h_temp = histos[process].ProjectionX(f"{process}_x")
-        h_temp = PyHist(h_temp)
-        h_temp.divide_by_bin_width()
-        h_mc.append(h_temp)
-        labels_mc.append(labels_dict[process])
-        colors_mc.append(colors_dict[process])
-    h_bkg = histos["TotalBkg"].ProjectionX("bkg_x")
-    h_bkg = PyHist(h_bkg)
-    h_bkg.divide_by_bin_width()
-    plotShapesWithRatioAndBand(h_data,h_mc,h_bkg,labels_mc,colors_mc,"$M_{JJ}$",f"{region}_mjj.png",xRange=[1300,3500],yRange=[0,8],projectionText=region.replace("_"," "))
-
-def plot_projection(histos_dict, region, processes, labels_dict, colors_dict, axis="X"):
+def plot_projection(histos_dict, region, processes, labels_dict, colors_dict, axis="X",yRange=[],yRangeLog=[1,10**5]):
     if axis not in ["X", "Y"]:
         raise ValueError("Invalid axis. Choose 'X' or 'Y'.")
 
     axis_label = "$M_{JJ} [GeV]$" if axis == "X" else "$M_{J}^{Y} [GeV]$"
     file_suffix = "mjj" if axis == "X" else "mjy"
     x_range = [1300, 3500] if axis == "X" else [40,500]
-    y_range = [0, 8] if axis == "X" else [0,20]
     projection_method = f"Projection{axis}"
 
     # Extract histograms
@@ -231,7 +209,7 @@ def plot_projection(histos_dict, region, processes, labels_dict, colors_dict, ax
     h_bkg = PyHist(h_bkg)
     h_bkg.divide_by_bin_width()
 
-    plotShapesWithRatioAndBand(h_data, h_mc, h_bkg,labels_mc, colors_mc,axis_label,f"{region}_{file_suffix}.png",xRange=x_range,yRange=y_range,projectionText=region.replace("_", " "))
+    plotShapesWithRatioAndBand(h_data, h_mc, h_bkg,labels_mc, colors_mc,axis_label,f"{region}_{file_suffix}.png",xRange=x_range,yRange=yRange,projectionText=region.replace("_", " "),yRangeLog=yRangeLog)
 
 if __name__ == "__main__":
     input_file = "~/nobackup/el8_anomalous/el9_fitting/CMSSW_14_1_0_pre4/src/AnomalousSearchFits/CR_run2/MX1400_MY90-0_area/postfitshapes_b.root"
@@ -243,5 +221,7 @@ if __name__ == "__main__":
     labels_dict={"TTToHadronic":r"$t\bar t$","TTToSemiLeptonic":"__nolabel__","Background_0":"Multijet","Background":"Multijet"}
     colors_dict={"TTToHadronic":"#d42e12","TTToSemiLeptonic":"#d42e12","Background_0":"#f39c12","Background":"#f39c12"}
     
-    plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X")    
-    plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y")
+    #plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[0, 8],yRangeLog=[0.01,10**2])    
+    #plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[0, 20],yRangeLog=[0.01,10**2])
+    plot_projection(histos_dict,"CR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
+    plot_projection(histos_dict,"CR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
