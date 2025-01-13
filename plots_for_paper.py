@@ -4,6 +4,7 @@ import mplhep as hep
 import ROOT as r
 plt.style.use(hep.style.CMS)
 from PyHist import PyHist
+import copy
 import matplotlib
 
 def get_binning_x(hLow,hSig,hHigh):
@@ -94,18 +95,17 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
     mc_yields = [histo.bin_values for histo in hMC]
     hep.histplot(mc_yields,edges,stack=True,label = labelsMC, histtype="fill",facecolor=colorsMC)
 
-
     yerr = hData.get_error_pairs()
     xerrorsData = [width / 2 for width in hData.bin_widths]
     plt.errorbar(centresData,hData.bin_values,xerr=xerrorsData,yerr=yerr, fmt='o',color="k",label = "Observed",zorder=11,markersize=10)
 
     def calcRatio(hData,hMC,dataErrs):
         ratioVals=[]
-        ratioErrs=dataErrs
+        ratioErrs = copy.deepcopy(dataErrs)
         for i in range(len(hData)):
+            print(hData.get_error_pairs()[0][0])
             data      = hData[i]
             mc        = hMC[i]
-
             ratioVal     = data/(mc+0.000001)#Protect division by zero
             ratioErrs[0][i] = ratioErrs[0][i]/(mc+0.000001)
             ratioErrs[1][i] = ratioErrs[1][i]/(mc+0.000001)
@@ -122,13 +122,25 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
             systBand[1].append(1-systBandDn)
         return systBand
 
-    ratioVals, ratioErrs = calcRatio(hData.bin_values,hTotalBkg.bin_values,hData.get_error_pairs())
-    systBand = calcSystBand(hTotalBkg.bin_values,hTotalBkg.get_error_pairs())
+    def calcPulls(hData,hMC,dataErrs,uncBand):
+        pulls = []
+        for i in range(len(hMC)):
+            num = hData[i]-hMC[i]
+            if(num>0):
+                err_data = dataErrs[0][i]#error low
+                err_mc = uncBand[1][i]#error high
+            else:
+                err_data = dataErrs[1][i]
+                err_mc = uncBand[0][i]
+            den = np.sqrt(err_data**2+err_mc**2)
+            if(den==0):
+                den = 0.0000000001#Avoid division by zero
+            pull = num/den
+            pulls.append(pull)
+        return pulls
 
     axs[0].legend()
     plt.ylabel("Events / GeV",horizontalalignment='center', y=0.5)
-    axs[1].set_ylabel("Data/bkg.")
-
     if(xRange):
         axs[0].set_xlim(xRange)
     if(yRange):
@@ -145,19 +157,31 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
     plt.legend(loc="best",ncol=1)
 
     if(projectionText):
-        plt.text(0.60, 0.60, projectionText, horizontalalignment='center',verticalalignment='center',transform=axs[0].transAxes)
+        plt.text(0.80, 0.60, projectionText, horizontalalignment='center',verticalalignment='center',transform=axs[0].transAxes)
     
     plt.sca(axs[1])#switch to lower pad
-    axs[1].axhline(y=1.0, xmin=0, xmax=1, color="grey",linestyle="--",alpha=0.5)
-    axs[1].set_ylim([0.0,2.3])
-    plt.xlabel(xlabel,horizontalalignment='center', x=0.5)
-    plt.errorbar(centresData,ratioVals,yerr=ratioErrs,xerr=xerrorsData, fmt='o',color="k",markersize=10) 
+    #If plotting ratios
+    if False:
+        axs[1].set_ylabel("Data/bkg.",horizontalalignment='center', y=0.5)
+        ratioVals, ratioErrs = calcRatio(hData.bin_values,hTotalBkg.bin_values,hData.get_error_pairs())
+        systBand = calcSystBand(hTotalBkg.bin_values,hTotalBkg.get_error_pairs())
+        axs[1].axhline(y=1.0, xmin=0, xmax=1, color="grey",linestyle="--",alpha=0.5)
+        axs[1].set_ylim([0.0,2.3])
+        plt.xlabel(xlabel,horizontalalignment='center', x=0.5)
+        plt.errorbar(centresData,ratioVals,yerr=ratioErrs,xerr=xerrorsData, fmt='o',color="k",markersize=10) 
 
-    axs[1].tick_params(axis='x', pad=10)  #Fix overlap between numbers on x and y axis of ratio plot
-    systBand_lower = list(systBand[0]) + [systBand[0][-1]]
-    systBand_upper = list(systBand[1]) + [systBand[1][-1]]
-    plt.fill_between(edges, systBand_lower, systBand_upper, color='lightgrey', alpha=0.8, label="Bkg. uncert.",step='pre')
-    plt.legend(bbox_to_anchor=(-0.01, 1.1),loc='upper left')
+        axs[1].tick_params(axis='x', pad=10)  #Fix overlap between numbers on x and y axis of ratio plot
+        systBand_lower = list(systBand[0]) + [systBand[0][-1]]
+        systBand_upper = list(systBand[1]) + [systBand[1][-1]]
+        plt.fill_between(edges, systBand_lower, systBand_upper, color='lightgrey', alpha=0.8, label="Bkg. uncert.",step='pre')
+        plt.legend(bbox_to_anchor=(-0.01, 1.1),loc='upper left')
+    else:#Plotting pulls  
+        pulls = calcPulls(hData.bin_values,hTotalBkg.bin_values,hData.get_error_pairs(),hTotalBkg.get_error_pairs())  
+        axs[1].set_ylabel("Pulls",horizontalalignment='center', y=0.5)
+        axs[1].axhline(y=0.0, xmin=0, xmax=1, color="grey",linestyle="--",alpha=0.5)
+        axs[1].set_ylim([-2.3,2.3])
+        plt.xlabel(xlabel,horizontalalignment='center', x=0.5)
+        hep.histplot(pulls,edges,linewidth=1,histtype="fill",facecolor="grey",edgecolor='black')
 
     print("Saving ", outputFile)
     #plt.tight_layout()
@@ -212,16 +236,34 @@ def plot_projection(histos_dict, region, processes, labels_dict, colors_dict, ax
     plotShapesWithRatioAndBand(h_data, h_mc, h_bkg,labels_mc, colors_mc,axis_label,f"{region}_{file_suffix}.png",xRange=x_range,yRange=yRange,projectionText=region.replace("_", " "),yRangeLog=yRangeLog)
 
 if __name__ == "__main__":
-    input_file = "~/nobackup/el8_anomalous/el9_fitting/CMSSW_14_1_0_pre4/src/AnomalousSearchFits/CR_run2/MX1400_MY90-0_area/postfitshapes_b.root"
-    processes_CR_Pass =["TTToHadronic","TTToSemiLeptonic","Background_0","TotalBkg","data_obs"]
-    processes_CR_Fail =["TTToHadronic","TTToSemiLeptonic","Background","TotalBkg","data_obs"]
-    histos_dict={}
-    histos_dict["CR_Pass"] = get_hists(input_file,"CR_Pass",processes_CR_Pass)
-    histos_dict["CR_Fail"] = get_hists(input_file,"CR_Fail",processes_CR_Fail)
-    labels_dict={"TTToHadronic":r"$t\bar t$","TTToSemiLeptonic":"__nolabel__","Background_0":"Multijet","Background":"Multijet"}
-    colors_dict={"TTToHadronic":"#d42e12","TTToSemiLeptonic":"#d42e12","Background_0":"#f39c12","Background":"#f39c12"}
-    
-    #plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[0, 8],yRangeLog=[0.01,10**2])    
-    #plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[0, 20],yRangeLog=[0.01,10**2])
-    plot_projection(histos_dict,"CR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
-    plot_projection(histos_dict,"CR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
+    if False:
+        input_file = "~/nobackup/el8_anomalous/el9_fitting/CMSSW_14_1_0_pre4/src/AnomalousSearchFits/CR_run2/MX1400_MY90-0_area/postfitshapes_b.root"
+        processes_CR_Pass =["WJets800","ZJets800","TTToHadronic","TTToSemiLeptonic","Background_0","TotalBkg","data_obs"]
+        processes_CR_Fail =["WJets800","ZJets800","TTToHadronic","TTToSemiLeptonic","Background","TotalBkg","data_obs"]
+        histos_dict={}
+        histos_dict["CR_Pass"] = get_hists(input_file,"CR_Pass",processes_CR_Pass)
+        histos_dict["CR_Fail"] = get_hists(input_file,"CR_Fail",processes_CR_Fail)
+        labels_dict={"WJets800":"__nolabel__","ZJets800":"V+jets","TTToHadronic":r"$t\bar t$","TTToSemiLeptonic":"__nolabel__","Background_0":"Multijet","Background":"Multijet"}
+        colors_dict={"WJets800":"#1f77b4","ZJets800":"#1f77b4","TTToHadronic":"#d42e12","TTToSemiLeptonic":"#d42e12","Background_0":"#f39c12","Background":"#f39c12"}
+        
+        plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic","WJets800","ZJets800"],labels_dict,colors_dict,axis="X",yRange=[0, 8],yRangeLog=[0.01,10**2])    
+        plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic","WJets800","ZJets800"],labels_dict,colors_dict,axis="Y",yRange=[0, 20],yRangeLog=[0.01,10**2])
+        plot_projection(histos_dict,"CR_Fail",["Background","TTToHadronic","TTToSemiLeptonic","WJets800","ZJets800"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
+        plot_projection(histos_dict,"CR_Fail",["Background","TTToHadronic","TTToSemiLeptonic","WJets800","ZJets800"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
+    elif True:
+        input_file = "~/nobackup/el8_anomalous/el9_fitting/CMSSW_14_1_0_pre4/src/AnomalousSearchFits/SR_run2_one_signal/MX2200_MY250-2_area/postfitshapes_b.root"
+        processes_SR_Pass =["TTToHadronic","TTToSemiLeptonic","Background_2","TotalBkg","data_obs"]
+        processes_SR_Fail =["TTToHadronic","TTToSemiLeptonic","Background","TotalBkg","data_obs"]
+        histos_dict={}
+        histos_dict["SR_Pass"] = get_hists(input_file,"SR_Pass",processes_SR_Pass)
+        histos_dict["SR_Fail"] = get_hists(input_file,"SR_Fail",processes_SR_Fail)
+        labels_dict={"TTToHadronic":r"$t\bar t$","TTToSemiLeptonic":"__nolabel__","Background_2":"Multijet","Background":"Multijet"}
+        colors_dict={"TTToHadronic":"#d42e12","TTToSemiLeptonic":"#d42e12","Background_2":"#f39c12","Background":"#f39c12"}
+
+        plot_projection(histos_dict,"SR_Pass",["Background_2","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[0, 13],yRangeLog=[0.01,10**2])    
+        plot_projection(histos_dict,"SR_Pass",["Background_2","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[0, 30],yRangeLog=[0.01,10**2])
+        plot_projection(histos_dict,"SR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
+        plot_projection(histos_dict,"SR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
+
+    else:
+        exit()
