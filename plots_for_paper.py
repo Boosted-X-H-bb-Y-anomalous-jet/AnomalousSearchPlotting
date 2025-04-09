@@ -94,6 +94,22 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
 
     mc_yields = [histo.bin_values for histo in hMC]
     hep.histplot(mc_yields,edges,stack=True,label = labelsMC, histtype="fill",facecolor=colorsMC)
+    totalBkgErrors = hTotalBkg.get_error_pairs()
+    totalBkgValues = np.array(hTotalBkg.bin_values)
+    totalBkgErrorsLow = np.array(totalBkgErrors[0])
+    totalBkgErrorsHigh = np.array(totalBkgErrors[1])
+
+    bkg_lower = totalBkgValues - totalBkgErrorsLow
+    bkg_upper = totalBkgValues + totalBkgErrorsHigh
+
+    # Hack to plot the uncertainty on the last bin
+    bkg_lower_extended = np.append(bkg_lower, bkg_lower[-1])
+    bkg_upper_extended = np.append(bkg_upper, bkg_upper[-1])
+    plt.fill_between(edges,  
+                 bkg_lower_extended, 
+                 bkg_upper_extended, 
+                 step='post', facecolor="none", edgecolor='black', 
+                 hatch='xxx', label='Bkg. uncert.',zorder=99, linewidth=0)
 
     yerr = hData.get_error_pairs()
     xerrorsData = [width / 2 for width in hData.bin_widths]
@@ -140,7 +156,7 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
         return pulls
 
     axs[0].legend()
-    plt.ylabel("Events / GeV",horizontalalignment='center', y=0.5)
+    plt.ylabel("Events / GeV",horizontalalignment='right', y=1.0)
     if(xRange):
         axs[0].set_xlim(xRange)
     if(yRange):
@@ -151,23 +167,27 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
     
     
     lumi = 138
-    lumiText = str(lumi)+ " $fb^{-1} (13 TeV)$"    
+    lumiText = str(lumi)+ " $fb^{-1}$ (13 TeV)"    
     hep.cms.lumitext(lumiText)
-    hep.cms.text("WiP",loc=0)
-    plt.legend(loc="best",ncol=1)
+    hep.cms.text("",loc=1)
+    plt.legend(loc="upper right",ncol=1)
 
     if(projectionText):
-        plt.text(0.80, 0.60, projectionText, horizontalalignment='center',verticalalignment='center',transform=axs[0].transAxes)
+        if "<" in projectionText:
+            xPosProjTex = 0.70
+        else:
+            xPosProjTex = 0.80
+        plt.text(xPosProjTex, 0.45, projectionText, horizontalalignment='center',verticalalignment='center',transform=axs[0].transAxes)
     
     plt.sca(axs[1])#switch to lower pad
     #If plotting ratios
     if False:
-        axs[1].set_ylabel("Data/bkg.",horizontalalignment='center', y=0.5)
+        axs[1].set_ylabel("Data/bkg.",horizontalalignment='right', y=0.5)
         ratioVals, ratioErrs = calcRatio(hData.bin_values,hTotalBkg.bin_values,hData.get_error_pairs())
         systBand = calcSystBand(hTotalBkg.bin_values,hTotalBkg.get_error_pairs())
         axs[1].axhline(y=1.0, xmin=0, xmax=1, color="grey",linestyle="--",alpha=0.5)
         axs[1].set_ylim([0.0,2.3])
-        plt.xlabel(xlabel,horizontalalignment='center', x=0.5)
+        plt.xlabel(xlabel,horizontalalignment='right', x=0.5)
         plt.errorbar(centresData,ratioVals,yerr=ratioErrs,xerr=xerrorsData, fmt='o',color="k",markersize=10) 
 
         axs[1].tick_params(axis='x', pad=10)  #Fix overlap between numbers on x and y axis of ratio plot
@@ -177,10 +197,10 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
         plt.legend(bbox_to_anchor=(-0.01, 1.1),loc='upper left')
     else:#Plotting pulls  
         pulls = calcPulls(hData.bin_values,hTotalBkg.bin_values,hData.get_error_pairs(),hTotalBkg.get_error_pairs())  
-        axs[1].set_ylabel("Pulls",horizontalalignment='center', y=0.5)
+        axs[1].set_ylabel("Pull",horizontalalignment='right', y=1.0)
         axs[1].axhline(y=0.0, xmin=0, xmax=1, color="grey",linestyle="--",alpha=0.5)
-        axs[1].set_ylim([-2.3,2.3])
-        plt.xlabel(xlabel,horizontalalignment='center', x=0.5)
+        axs[1].set_ylim([-3.3,3.3])
+        plt.xlabel(xlabel,horizontalalignment='right', x=1.0)
         hep.histplot(pulls,edges,linewidth=1,histtype="fill",facecolor="grey",edgecolor='black')
 
     print("Saving ", outputFile)
@@ -205,7 +225,7 @@ def plot_projection(histos_dict, region, processes, labels_dict, colors_dict, ax
     if axis not in ["X", "Y"]:
         raise ValueError("Invalid axis. Choose 'X' or 'Y'.")
 
-    axis_label = "$M_{JJ} [GeV]$" if axis == "X" else "$M_{J}^{Y} [GeV]$"
+    axis_label = "$M_{JJ}$ [GeV]" if axis == "X" else "$M_{J}^{Y}$ [GeV]"
     file_suffix = "mjj" if axis == "X" else "mjy"
     x_range = [1300, 3500] if axis == "X" else [40,500]
     projection_method = f"Projection{axis}"
@@ -229,11 +249,12 @@ def plot_projection(histos_dict, region, processes, labels_dict, colors_dict, ax
         labels_mc.append(labels_dict[process])
         colors_mc.append(colors_dict[process])
 
+    #h_bkg = getattr(histos["TotalProcs"], projection_method)(f"bkg_{axis}")
     h_bkg = getattr(histos["TotalBkg"], projection_method)(f"bkg_{axis}")
     h_bkg = PyHist(h_bkg)
     h_bkg.divide_by_bin_width()
 
-    plotShapesWithRatioAndBand(h_data, h_mc, h_bkg,labels_mc, colors_mc,axis_label,f"{region}_{file_suffix}.png",xRange=x_range,yRange=yRange,projectionText=region.replace("_", " "),yRangeLog=yRangeLog)
+    plotShapesWithRatioAndBand(h_data, h_mc, h_bkg,labels_mc, colors_mc,axis_label,f"plots/{region}_{file_suffix}.png",xRange=x_range,yRange=yRange,projectionText=region.replace("_", " "),yRangeLog=yRangeLog)
 
 if __name__ == "__main__":
     if False:
@@ -250,20 +271,47 @@ if __name__ == "__main__":
         plot_projection(histos_dict,"CR_Pass",["Background_0","TTToHadronic","TTToSemiLeptonic","WJets800","ZJets800"],labels_dict,colors_dict,axis="Y",yRange=[0, 20],yRangeLog=[0.01,10**2])
         plot_projection(histos_dict,"CR_Fail",["Background","TTToHadronic","TTToSemiLeptonic","WJets800","ZJets800"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
         plot_projection(histos_dict,"CR_Fail",["Background","TTToHadronic","TTToSemiLeptonic","WJets800","ZJets800"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
-    elif True:
+    if True:#Postfit B
         input_file = "~/nobackup/el8_anomalous/el9_fitting/CMSSW_14_1_0_pre4/src/AnomalousSearchFits/SR_run2_one_signal/MX2200_MY250-2_area/postfitshapes_b.root"
-        processes_SR_Pass =["TTToHadronic","TTToSemiLeptonic","Background_2","TotalBkg","data_obs"]
+        processes_SR_Pass =["GluGluHToBB","VBFHToBB","WplusH_HToBB_WToQQ","WminusH_HToBB_WToQQ","ZH_HToBB_ZToQQ","ggZH_HToBB_ZToQQ","TTToHadronic","TTToSemiLeptonic","Background_2","TotalBkg","data_obs"]
         processes_SR_Fail =["TTToHadronic","TTToSemiLeptonic","Background","TotalBkg","data_obs"]
         histos_dict={}
         histos_dict["SR_Pass"] = get_hists(input_file,"SR_Pass",processes_SR_Pass)
         histos_dict["SR_Fail"] = get_hists(input_file,"SR_Fail",processes_SR_Fail)
-        labels_dict={"TTToHadronic":r"$t\bar t$","TTToSemiLeptonic":"__nolabel__","Background_2":"Multijet","Background":"Multijet"}
-        colors_dict={"TTToHadronic":"#d42e12","TTToSemiLeptonic":"#d42e12","Background_2":"#f39c12","Background":"#f39c12"}
+        labels_dict={"GluGluHToBB":"SM Higgs","VBFHToBB":"__nolabel__","WplusH_HToBB_WToQQ":"__nolabel__","WminusH_HToBB_WToQQ":"__nolabel__","ZH_HToBB_ZToQQ":"__nolabel__","ggZH_HToBB_ZToQQ":"__nolabel__","TTToHadronic":r"$t\bar t$","TTToSemiLeptonic":"__nolabel__","Background_2":"Multijet","Background":"Multijet"}
+        colors_dict={"GluGluHToBB":"forestgreen","VBFHToBB":"forestgreen","WplusH_HToBB_WToQQ":"forestgreen","WminusH_HToBB_WToQQ":"forestgreen","ZH_HToBB_ZToQQ":"forestgreen","ggZH_HToBB_ZToQQ":"forestgreen","TTToHadronic":"#d42e12","TTToSemiLeptonic":"#d42e12","Background_2":"#f39c12","Background":"#f39c12"}
 
-        plot_projection(histos_dict,"SR_Pass",["Background_2","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[0, 13],yRangeLog=[0.01,10**2])    
-        plot_projection(histos_dict,"SR_Pass",["Background_2","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[0, 30],yRangeLog=[0.01,10**2])
-        plot_projection(histos_dict,"SR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
-        plot_projection(histos_dict,"SR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
+        plot_projection(histos_dict,"SR_Pass",["GluGluHToBB","VBFHToBB","WplusH_HToBB_WToQQ","WminusH_HToBB_WToQQ","ZH_HToBB_ZToQQ","ggZH_HToBB_ZToQQ","TTToHadronic","TTToSemiLeptonic","Background_2"],labels_dict,colors_dict,axis="X",yRange=[0, 13],yRangeLog=[0.01,10**3])    
+        plot_projection(histos_dict,"SR_Pass",["GluGluHToBB","VBFHToBB","WplusH_HToBB_WToQQ","WminusH_HToBB_WToQQ","ZH_HToBB_ZToQQ","ggZH_HToBB_ZToQQ","TTToHadronic","TTToSemiLeptonic","Background_2"],labels_dict,colors_dict,axis="Y",yRange=[0, 30],yRangeLog=[0.01,10**3])
+        plot_projection(histos_dict,"SR_Fail",["TTToHadronic","TTToSemiLeptonic","Background"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
+        plot_projection(histos_dict,"SR_Fail",["TTToHadronic","TTToSemiLeptonic","Background"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
+    if True:#Postfit CR B
+        input_file = "~/nobackup/el8_anomalous/el9_fitting/CMSSW_14_1_0_pre4/src/AnomalousSearchFits/CR_run2/MX1400_MY90-0_area/postfitshapes_b.root"
+        processes_SR_Pass =["GluGluHToBB","VBFHToBB","WplusH_HToBB_WToQQ","WminusH_HToBB_WToQQ","ZH_HToBB_ZToQQ","ggZH_HToBB_ZToQQ","TTToHadronic","TTToSemiLeptonic","Background_0","TotalBkg","data_obs"]
+        processes_SR_Fail =["TTToHadronic","TTToSemiLeptonic","Background","TotalBkg","data_obs"]
+        histos_dict={}
+        histos_dict["CR_Pass"] = get_hists(input_file,"CR_Pass",processes_SR_Pass)
+        histos_dict["CR_Fail"] = get_hists(input_file,"CR_Fail",processes_SR_Fail)
+        labels_dict={"GluGluHToBB":"SM Higgs","VBFHToBB":"__nolabel__","WplusH_HToBB_WToQQ":"__nolabel__","WminusH_HToBB_WToQQ":"__nolabel__","ZH_HToBB_ZToQQ":"__nolabel__","ggZH_HToBB_ZToQQ":"__nolabel__","TTToHadronic":r"$t\bar t$","TTToSemiLeptonic":"__nolabel__","Background_0":"Multijet","Background":"Multijet"}
+        colors_dict={"GluGluHToBB":"forestgreen","VBFHToBB":"forestgreen","WplusH_HToBB_WToQQ":"forestgreen","WminusH_HToBB_WToQQ":"forestgreen","ZH_HToBB_ZToQQ":"forestgreen","ggZH_HToBB_ZToQQ":"forestgreen","TTToHadronic":"#d42e12","TTToSemiLeptonic":"#d42e12","Background_0":"#f39c12","Background":"#f39c12"}
 
+        plot_projection(histos_dict,"CR_Pass",["GluGluHToBB","VBFHToBB","WplusH_HToBB_WToQQ","WminusH_HToBB_WToQQ","ZH_HToBB_ZToQQ","ggZH_HToBB_ZToQQ","TTToHadronic","TTToSemiLeptonic","Background_0"],labels_dict,colors_dict,axis="X",yRange=[0, 13],yRangeLog=[0.01,10**3])    
+        plot_projection(histos_dict,"CR_Pass",["GluGluHToBB","VBFHToBB","WplusH_HToBB_WToQQ","WminusH_HToBB_WToQQ","ZH_HToBB_ZToQQ","ggZH_HToBB_ZToQQ","TTToHadronic","TTToSemiLeptonic","Background_0"],labels_dict,colors_dict,axis="Y",yRange=[0, 30],yRangeLog=[0.01,10**3])
+        plot_projection(histos_dict,"CR_Fail",["TTToHadronic","TTToSemiLeptonic","Background"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
+        plot_projection(histos_dict,"CR_Fail",["TTToHadronic","TTToSemiLeptonic","Background"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
+
+    if False:#Postfit S+B
+        input_file = "~/nobackup/el8_anomalous/el9_fitting/CMSSW_14_1_0_pre4/src/AnomalousSearchFits/SR_run2/MX1600_MY90-2_area/postfitshapes_s.root"
+        processes_SR_Pass =["TTToHadronic","TTToSemiLeptonic","Background_2","TotalBkg","data_obs","TotalSig","TotalProcs"]
+        processes_SR_Fail =["TTToHadronic","TTToSemiLeptonic","Background","TotalBkg","data_obs"]
+        histos_dict={}
+        histos_dict["SR_Pass"] = get_hists(input_file,"SR_Pass",processes_SR_Pass)
+        labels_dict={"TTToHadronic":r"$t\bar t$","TTToSemiLeptonic":"__nolabel__","Background_2":"Multijet","Background":"Multijet","TotalSig":"Signal"}
+        colors_dict={"TTToHadronic":"#d42e12","TTToSemiLeptonic":"#d42e12","Background_2":"#f39c12","Background":"#f39c12","TotalSig":"#1f77b4"}
+
+        plot_projection(histos_dict,"SR_Pass",["Background_2","TTToHadronic","TTToSemiLeptonic","TotalSig"],labels_dict,colors_dict,axis="X",yRange=[0, 13],yRangeLog=[0.01,10**2])    
+        plot_projection(histos_dict,"SR_Pass",["Background_2","TTToHadronic","TTToSemiLeptonic","TotalSig"],labels_dict,colors_dict,axis="Y",yRange=[0, 30],yRangeLog=[0.01,10**2])
+        #plot_projection(histos_dict,"SR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="X",yRange=[],yRangeLog=[1,10**5])
+        #plot_projection(histos_dict,"SR_Fail",["Background","TTToHadronic","TTToSemiLeptonic"],labels_dict,colors_dict,axis="Y",yRange=[],yRangeLog=[1,10**5])
     else:
         exit()

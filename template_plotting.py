@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 plt.style.use(hep.style.CMS)
 
-base_path = '/uscms_data/d3/roguljic/el8_anomalous/el9_fitting/templates_v6/'
+base_path = '/uscms_data/d3/roguljic/el8_anomalous/el9_fitting/templates_v8/'
 
 def add_histograms(counts_list, edges_list):
     total_counts = np.sum(counts_list, axis=0).tolist()
@@ -12,7 +12,14 @@ def add_histograms(counts_list, edges_list):
 
 def get_histogram(process, year, region, variable):
     years = ["2016APV", "2016", "2017", "2018"] if year == "run2" else [year]
-    processes = ["QCD_HT700to1000", "QCD_HT1000to1500", "QCD_HT1500to2000", "QCD_HT2000toInf"] if process == "QCD" else [process]
+    if process == "QCD":
+        processes = ["QCD_HT700to1000", "QCD_HT1000to1500", "QCD_HT1500to2000", "QCD_HT2000toInf"] 
+    elif process == "VJets":
+        processes = ["WJets800", "ZJets800"] 
+    elif process == "SMHiggs":
+        processes = ["GluGluHToBB","VBFHToBB","WplusH_HToBB_WToQQ","WminusH_HToBB_WToQQ","ZH_HToBB_ZToQQ","ggZH_HToBB_ZToQQ"] 
+    else:
+        processes = [process]
 
     all_counts = []
     all_edges = None
@@ -22,6 +29,8 @@ def get_histogram(process, year, region, variable):
             file_name = f"{base_path}/templates_{proc}_{yr}.root"
             if variable in ["mjj", "mjy"]:
                 hist_name = f"mjj_my_{proc}_{region}_nom"
+            elif variable == "pt":
+                hist_name = f"pt_{proc}_{region}_nom"
             elif variable == "phi":
                 hist_name = f"phi_{proc}_{region}_nom"
             elif variable == "eta":
@@ -29,7 +38,7 @@ def get_histogram(process, year, region, variable):
             elif variable == "eta_phi":
                 hist_name = f"eta_phi_{proc}_{region}_nom"
             else:
-                raise ValueError("Invalid variable: choose 'mjj', 'mjy', 'phi', 'eta' or 'eta_phi'.")
+                raise ValueError("Invalid variable: choose 'mjj', 'mjy', 'pt', 'phi', 'eta' or 'eta_phi'.")
 
             with uproot.open(file_name) as file:
                 hist = file[hist_name]
@@ -50,6 +59,7 @@ def get_histogram(process, year, region, variable):
         return add_histograms(all_counts, all_edges)
     else:
         return all_counts[0], all_edges
+
 
 def plot_histograms(processes, year, region, variable, colors=None):
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, sharey=False, figsize=(10, 8), gridspec_kw={'height_ratios': [4, 1], 'hspace': 0.1})
@@ -97,6 +107,9 @@ def plot_histograms(processes, year, region, variable, colors=None):
     elif variable == "mjy":
         ax1.set_xlim(0, 500)
         ax1.set_xlabel(r'$M_{j}^{Y}$ [GeV]')
+    elif variable == "pt":
+        ax1.set_xlim(300, 1500)
+        ax1.set_xlabel(r'Leading jet $p_T$')
     elif variable == "phi":
         ax1.set_xlim(-3.2, 3.2)
         ax1.set_xlabel(r'$\phi$')
@@ -111,13 +124,13 @@ def plot_histograms(processes, year, region, variable, colors=None):
     ax1.text(0.15, 0.95, region.replace("_", " "), transform=ax1.transAxes, fontsize="large", verticalalignment='top')
 
     if region=="IR_Pass":
-        ax1.set_ylim(1, 1e5)
+        ax1.set_ylim(1, 1e8)
     elif region=="IR_Fail":
-        ax1.set_ylim(10, 1e8)
+        ax1.set_ylim(10, 1e11)
     elif "Pass" in region:
-        ax1.set_ylim(1e-1, 1e4)
+        ax1.set_ylim(1e-1, 1e5)
     else:
-        ax1.set_ylim(1e-1, 1e7)
+        ax1.set_ylim(1e-1, 1e10)
 
     if data_counts is not None and stacked_counts is not None:
         ratio = np.array(data_counts) / np.array(stacked_counts)
@@ -181,7 +194,14 @@ def plot_2d_histogram(processes, year, region):
 def get_histogram_ratio(process, year, region1, region2, variable):
     import ROOT
     years = ["2016APV", "2016", "2017", "2018"] if year == "run2" else [year]
-    processes = ["QCD_HT700to1000", "QCD_HT1000to1500", "QCD_HT1500to2000", "QCD_HT2000toInf"] if process == "QCD" else [process]
+    if process == "QCD":
+        processes = ["QCD_HT700to1000", "QCD_HT1000to1500", "QCD_HT1500to2000", "QCD_HT2000toInf"] 
+    elif process == "VJets":
+        processes = ["WJets800", "ZJets800"]
+    elif process == "SMHiggs":
+        processes = ["GluGluHToBB","VBFHToBB","WplusH_HToBB_WToQQ","WminusH_HToBB_WToQQ","ZH_HToBB_ZToQQ","ggZH_HToBB_ZToQQ"] 
+    else:
+        processes = [process]
 
     total_pass = None
     total_fail = None
@@ -231,7 +251,7 @@ def get_histogram_ratio(process, year, region1, region2, variable):
     return hist_ratio
 
 
-def plot_qcd_ratio(year, variable, region1="CR_Pass", region2="CR_Fail"):
+def plot_qcd_ratio(year, variable, region1="CR_Pass", region2="CR_Fail",ylim=[0,0.02]):
     hist_ratio = get_histogram_ratio("QCD", year, region1, region2, variable)
     
     bin_centers = np.array([hist_ratio.GetBinCenter(i) for i in range(1, hist_ratio.GetNbinsX() + 1)])
@@ -249,7 +269,7 @@ def plot_qcd_ratio(year, variable, region1="CR_Pass", region2="CR_Fail"):
         ax.set_xlabel(r'$M_{j}^{Y}$ [GeV]')
         
     ax.set_ylabel(r'$R_{P/F}$')
-    ax.set_ylim(0, 0.02)
+    ax.set_ylim(ylim)
     
     hep.cms.label("WiP", loc=0, ax=ax, data=False)
     lumiText = f"{year if year != 'run2' else 'Run 2'} (13 TeV)"
@@ -260,20 +280,67 @@ def plot_qcd_ratio(year, variable, region1="CR_Pass", region2="CR_Fail"):
     plt.savefig(f"plots/QCD_ratio_{region1}_{region2}_{year}_{variable}.pdf")
     plt.clf()
 
+def compare_shapes(process1, process2,label1,label2, region, year="run2", variable="mjy"):
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, sharey=False, figsize=(10, 8), gridspec_kw={'height_ratios': [4, 1], 'hspace': 0.1})
+    counts1, edges = get_histogram(process1, year, region, variable)
+    counts2, edges = get_histogram(process2, year, region, variable)
+    bin_edges = edges[0]
+    
+    norm_counts1 = [count / sum(counts1) for count in counts1]
+    norm_counts2 = [count / sum(counts2) for count in counts2]
+    
+    ax1.step(bin_edges[:-1], norm_counts1, where='post', label=f"{label1}", linewidth=2)
+    ax1.step(bin_edges[:-1], norm_counts2, where='post', label=f"{label2}", linewidth=2)
+    ax1.set_ylabel("Normalized counts")
+    ax1.legend(loc='upper right')
+    
+    ratio = [c1 / c2 if c2 != 0 else 0 for c1, c2 in zip(norm_counts1, norm_counts2)]
+    ax2.step(bin_edges[:-1], ratio, where='post', color='black', linewidth=2)
 
-# Example calls
-plot_qcd_ratio("2018", "mjj")
-plot_qcd_ratio("2018", "mjy")
+    if variable == "mjj":
+        ax1.set_xlim(1300, 3500)
+        ax2.set_xlabel(r'$M_{jj}$ [GeV]')
+    elif variable == "mjy":
+        ax1.set_xlim(0, 300)
+        ax2.set_xlabel(r'$M_{j}^{Y}$ [GeV]')
+    elif variable == "pt":
+        ax1.set_xlim(300, 1500)
+        ax2.set_xlabel(r'Leading jet $p_T$')
+    elif variable == "phi":
+        ax1.set_xlim(-3.2, 3.2)
+        ax2.set_xlabel(r'$\phi$')
+    elif variable == "eta":
+        ax1.set_xlim(-2.5, 2.5)
+        ax2.set_xlabel(r'$\eta$')
 
-exit()
 
+    ax2.set_ylabel("Ratio")
+    ax2.set_ylim(0,2)
+    
 
+    ax1.tick_params(labelbottom=False)
+    hep.cms.label("WiP", loc=0, ax=ax1,data=True)
+    #lumiText = f"{year if year != 'run2' else 'Run 2'} (13 TeV)"
+    lumiText = f"{year if year != 'run2' else 'Run 2'} (13 TeV)"
+    hep.cms.lumitext(lumiText, ax=ax1)
 
+    plt.tight_layout()
+    print(f"Saving plots/{process1}_vs_{process2}_{region}_{year}_{variable}.png")
+    plt.savefig(f"plots/{process1}_vs_{process2}_{region}_{year}_{variable}.png")
+    plt.savefig(f"plots/{process1}_vs_{process2}_{region}_{year}_{variable}.pdf")
 
+for variable in ["mjy","mjj"]:
+    for region in ["CR_Pass","SR_Pass"]:
+        compare_shapes("VJets", "QCD","V+jets","QCD", region, year="run2", variable=variable)
+        compare_shapes("TTToHadronic", "QCD","TTToHadronic","QCD", region, year="run2", variable=variable)
 
-processes = ["TTToSemiLeptonic", "TTToHadronic", "QCD", "data_obs"]
-colors = {"QCD": "burlywood", "TTToHadronic": "cornflowerblue", "TTToSemiLeptonic": "darkblue", "data_obs": "black"}
+# plot_qcd_ratio("run2", "mjj",region1="CR_Pass",region2="CR_Fail")
+# plot_qcd_ratio("run2", "mjy",region1="CR_Pass",region2="CR_Fail")
+# plot_qcd_ratio("run2", "mjj",region1="SR_Fail",region2="CR_Fail",ylim=[0.5,3.0])
+# plot_qcd_ratio("run2", "mjy",region1="SR_Fail",region2="CR_Fail",ylim=[0.,8.0])
 
+processes = ["SMHiggs","VJets","TTToSemiLeptonic", "TTToHadronic", "QCD", "data_obs"]
+colors = {"SMHiggs":"forestgreen","VJets":"violet","QCD": "burlywood", "TTToHadronic": "cornflowerblue", "TTToSemiLeptonic": "darkblue", "data_obs": "black"}
 
 for region in ["CR_Pass", "CR_Fail", "SR_Pass", "SR_Fail"]:
     # Plot mjj and mjy histograms
@@ -284,5 +351,15 @@ for region in ["IR_Pass", "IR_Fail"]:
     # Plot phi and eta histograms
     plot_histograms(processes, "run2", region, "phi", colors=colors)
     plot_histograms(processes, "run2", region, "eta", colors=colors)
+    plot_histograms(processes, "run2", region, "pt", colors=colors)
     plot_2d_histogram(processes, "2018", "IR_Fail")
     plot_2d_histogram(["MX2600_MY250"], "2018", region)
+
+# import SelectionEffvsMass as eff_plotting
+# eff_plotting.MakePlots()
+
+# import plotting_limits as limits_plotting
+# limits_plotting.MakePlots()
+
+# import limit_plot_1d
+# limit_plot_1d.MakePlots()
