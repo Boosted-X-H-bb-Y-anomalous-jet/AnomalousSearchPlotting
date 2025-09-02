@@ -108,8 +108,7 @@ def plotShapesWithRatioAndBand(hData,hMC,hTotalBkg,labelsMC,colorsMC,xlabel,outp
     plt.fill_between(edges,  
                  bkg_lower_extended, 
                  bkg_upper_extended, 
-                 step='post', facecolor="none", edgecolor='black', 
-                 hatch='xx', label='Bkg. uncert.',zorder=99, linewidth=0)
+                 step='post', facecolor="lightgrey", edgecolor='black', label='Bkg. uncert.',zorder=99, linewidth=0,alpha=0.8)
 
     yerr = hData.get_error_pairs()
     xerrorsData = [width / 2 for width in hData.bin_widths]
@@ -232,7 +231,7 @@ def plot_projection(histos_dict, region, processes, labels_dict, colors_dict, ax
     if axis not in ["X", "Y"]:
         raise ValueError("Invalid axis. Choose 'X' or 'Y'.")
 
-    axis_label = "$M_{JJ}$ [GeV]" if axis == "X" else "$M_{J}^{Y}$ [GeV]"
+    axis_label = "$M_{jj}$ [GeV]" if axis == "X" else "$M_{j}^{Y}$ [GeV]"
     file_suffix = "mjj" if axis == "X" else "mjy"
     x_range = [1300, 3500] if axis == "X" else [40,500]
     projection_method = f"Projection{axis}"

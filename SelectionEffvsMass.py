@@ -39,7 +39,7 @@ def Plot(Efficiencies, title="Selection Efficiency vs Mass", outputFile="plots/S
     x_edges = MXs + [3400]
     y_edges = MYs + [425]
     z_min = 0.
-    z_max = 1.0
+    z_max = 0.5
 
     Efficiencies = np.array(Efficiencies)
 
@@ -135,6 +135,8 @@ def MakeDelphesPlot():
 
 if __name__=='__main__':
     
-    #MakePlots()
+    MakePlots()
+
+    #These are deprecated
     #MakeGenRecoPlots()
-    MakeDelphesPlot()
+    #MakeDelphesPlot()

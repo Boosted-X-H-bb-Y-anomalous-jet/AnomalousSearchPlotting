@@ -1,0 +1,10 @@
+cp /uscms/home/roguljic/nobackup/el8_anomalous/systematics/systematics_for_PFNano/trigger_eff/*pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/objects
+cp /uscms/home/roguljic/nobackup/el8_anomalous/systematics/systematics_for_PFNano/trigger_eff/*png /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/objects
+cp plots/*pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/objects
+cp plots/Limit*pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/fit
+cp plots/bbWW_limits_MY90.pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/fit
+cp SF_Plotting/*pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/objects/vae_sf
+cp plots/VJets_vs_QCD_CR_Pass_run2_mjy.pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/objects/
+cp plots/VJets_vs_QCD_SR_Pass_run2_mjy.pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/objects/
+cp plots/TTToHadronic_vs_QCD_CR_Pass_run2_mjy.pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/objects/
+cp plots/TTToHadronic_vs_QCD_SR_Pass_run2_mjy.pdf /uscms/home/roguljic/nobackup/el8_anomalous/AN/AN-24-111/figures/objects/
